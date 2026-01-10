@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { 
   CheckCircle2, 
   Smartphone, 
@@ -18,7 +17,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <Image src="/umutulo_small_logo_120.png" alt="Umutulo Logo" width={40} height={40} className="rounded-full" />
+          <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-10 h-10 rounded-full" />
           <span className="text-2xl font-black text-[#001F3F] tracking-tight">Umutulo</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-600">
@@ -209,7 +208,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-slate-800 pb-16">
           <div className="md:col-span-2 space-y-6">
             <div className="flex items-center gap-2">
-              <Image src="/umutulo_small_logo_120.png" alt="Umutulo Logo" width={32} height={32} className="rounded-full" />
+              <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-8 h-8 rounded-full" />
               <span className="text-2xl font-bold tracking-tight">Umutulo</span>
             </div>
             <p className="text-slate-400 max-w-sm leading-relaxed">

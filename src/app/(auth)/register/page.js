@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -100,7 +99,7 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-10">
-          <Image src="/umutulo_small_logo_120.png" alt="Umutulo Logo" width={64} height={64} className="mx-auto mb-4 rounded-full shadow-lg" />
+          <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-16 h-16 mx-auto mb-4 rounded-full shadow-lg" />
           <h2 className="text-3xl font-bold text-slate-900">Register Church</h2>
           <p className="text-slate-500 mt-2">Start tracking contributions today</p>
         </div>
