@@ -9,6 +9,7 @@ export const metadata = {
   description: "Track Tithe, Offering and Partnership Easily",
   icons: {
     icon: [
+      { url: '/umutulo_favicon_32.png', sizes: '16x16', type: 'image/png' },
       { url: '/umutulo_favicon_32.png', sizes: '32x32', type: 'image/png' },
       { url: '/umutulo_app_icon_512.png', sizes: '512x512', type: 'image/png' },
     ],

@@ -17,11 +17,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 bg-[#001F3F] rounded-xl flex items-center justify-center shadow-lg shadow-navy-100">
-            <svg className="w-6 h-6 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
+          <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-10 h-10 rounded-full" />
           <span className="text-2xl font-black text-[#001F3F] tracking-tight">Umutulo</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-600">
@@ -212,11 +208,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-slate-800 pb-16">
           <div className="md:col-span-2 space-y-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
+              <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-8 h-8 rounded-full" />
               <span className="text-2xl font-bold tracking-tight">Umutulo</span>
             </div>
             <p className="text-slate-400 max-w-sm leading-relaxed">

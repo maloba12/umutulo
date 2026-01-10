@@ -127,11 +127,7 @@ export default function RegisterMember() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
+          <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-16 h-16 mx-auto mb-4 rounded-full shadow-lg" />
           <h2 className="text-3xl font-bold text-slate-900">Member Registration</h2>
           <p className="text-slate-500 mt-2">Join your church to track your giving</p>
         </div>

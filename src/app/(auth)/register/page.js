@@ -99,11 +99,7 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
+          <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-16 h-16 mx-auto mb-4 rounded-full shadow-lg" />
           <h2 className="text-3xl font-bold text-slate-900">Register Church</h2>
           <p className="text-slate-500 mt-2">Start tracking contributions today</p>
         </div>
