@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -30,15 +30,14 @@ export default function TransactionsList() {
         // Fetch Transactions
         const q = query(
           collection(db, "transactions"),
-          where("churchId", "==", userData.churchId),
-          orderBy("date", "desc")
+          where("churchId", "==", userData.churchId)
         );
         const querySnapshot = await getDocs(q);
         const transList = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
           name: doc.data().memberId === "GUEST" ? "General Offering" : (memberMap[doc.data().memberId] || "Unknown Member")
-        }));
+        })).sort((a, b) => new Date(b.date) - new Date(a.date));
         setTransactions(transList);
       } catch (err) {
         console.error("Error fetching transactions:", err);
