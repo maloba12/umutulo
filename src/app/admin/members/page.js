@@ -20,14 +20,13 @@ export default function MembersManagement() {
       try {
         const q = query(
           collection(db, "members"),
-          where("churchId", "==", userData.churchId),
-          orderBy("name", "asc")
+          where("churchId", "==", userData.churchId)
         );
         const querySnapshot = await getDocs(q);
         const memberList = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        }));
+        })).sort((a, b) => a.name.localeCompare(b.name));
         setMembers(memberList);
       } catch (err) {
         console.error("Error fetching members:", err);

@@ -6,6 +6,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs } from "fire
 import { db, auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
+import Toast from "@/components/Toast";
 
 export default function AddContribution() {
   const { userData } = useAuth();
@@ -18,6 +19,7 @@ export default function AddContribution() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [members, setMembers] = useState([]);
+  const [showToast, setShowToast] = useState(false);
 
   const contributionTypes = ["Tithe", "Offering", "Partnership"];
 
@@ -65,7 +67,10 @@ export default function AddContribution() {
         createdAt: serverTimestamp(),
         recordedBy: auth.currentUser.uid
       });
-      router.push("/admin/transactions");
+      setShowToast(true);
+      setTimeout(() => {
+        router.push("/admin/transactions");
+      }, 2000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -175,6 +180,7 @@ export default function AddContribution() {
           {loading ? "Saving..." : "Save Contribution"}
         </button>
       </form>
+      {showToast && <Toast message="Contribution recorded successfully!" onClose={() => setShowToast(false)} />}
     </div>
   );
 }

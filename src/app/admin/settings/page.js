@@ -19,10 +19,6 @@ export default function Settings() {
       { label: "Church Name", value: userData?.churchName || "Not set" },
       { label: "Address", value: "Lusaka, Zambia" },
     ]},
-    { title: "SMS Configuration", items: [
-      { label: "Provider", value: "Africa's Talking" },
-      { label: "API Key", value: "••••••••••••" },
-    ]},
   ];
 
   return (

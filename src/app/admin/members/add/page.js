@@ -6,6 +6,7 @@ import { collection, addDoc, doc, setDoc, serverTimestamp } from "firebase/fires
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import Toast from "@/components/Toast";
 
 export default function AddMember() {
   const { userData } = useAuth();
@@ -17,6 +18,7 @@ export default function AddMember() {
   const [isPartner, setIsPartner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,7 +50,10 @@ export default function AddMember() {
 
       // 3. If login was intended, we'd typicaly create a secondary user record
       // But we will just redirect back for now.
-      router.push("/admin/members");
+      setShowToast(true);
+      setTimeout(() => {
+        router.push("/admin/members");
+      }, 2000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -148,6 +153,7 @@ export default function AddMember() {
           {loading ? "Saving Member..." : "Save Member Profile"}
         </button>
       </form>
+      {showToast && <Toast message="Member created successfully!" onClose={() => setShowToast(false)} />}
     </div>
   );
 }

@@ -19,7 +19,19 @@ export const AuthProvider = ({ children }) => {
         // Fetch user metadata (role, churchId) from Firestore
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
-          setUserData(userDoc.data());
+          const userDocData = userDoc.data();
+          
+          // Fetch church metadata if churchId exists
+          if (userDocData.churchId) {
+            const churchDoc = await getDoc(doc(db, "churches", userDocData.churchId));
+            if (churchDoc.exists()) {
+              setUserData({ ...userDocData, churchName: churchDoc.data().name });
+            } else {
+              setUserData(userDocData);
+            }
+          } else {
+            setUserData(userDocData);
+          }
         }
       } else {
         setUser(null);

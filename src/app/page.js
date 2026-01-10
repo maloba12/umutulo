@@ -32,7 +32,7 @@ export default function Home() {
           <Link href="/login" className="hidden sm:block text-sm font-bold text-[#001F3F] hover:opacity-70 transition-opacity">
             Member Login
           </Link>
-          <Link href="/register" className="px-5 py-2.5 text-sm font-bold bg-[#001F3F] text-white rounded-full hover:shadow-xl hover:shadow-[#001F3F]/20 transition-all active:scale-95">
+          <Link href="/register-member" className="px-5 py-2.5 text-sm font-bold bg-[#001F3F] text-white rounded-full hover:shadow-xl hover:shadow-[#001F3F]/20 transition-all active:scale-95">
             Join Now
           </Link>
         </div>
@@ -59,11 +59,17 @@ export default function Home() {
             
             <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
               <Link href="/register" className="w-full sm:w-auto px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-2xl hover:shadow-[#001F3F]/30 transition-all active:scale-95 group">
-                Create Church Account
+                Register Church Account
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link href="/login" className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-slate-100 text-[#001F3F] rounded-2xl font-bold hover:bg-slate-50 transition-colors active:scale-95">
-                Member Login
+              <Link href="/register-member" className="w-full sm:w-auto px-8 py-4 bg-[#FFD700] text-[#001F3F] rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-2xl hover:shadow-[#FFD700]/30 transition-all active:scale-95">
+                Join as Member
+              </Link>
+            </div>
+            
+            <div className="mt-10">
+              <Link href="/login" className="text-slate-500 font-bold hover:text-[#001F3F] transition-colors text-sm underline decoration-[#FFD700]/40 underline-offset-8">
+                Already have an account? Log in here
               </Link>
             </div>
           </div>

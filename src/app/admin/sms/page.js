@@ -4,6 +4,8 @@ import { useState } from "react";
 
 export default function SMSReminders() {
   const [activeTab, setActiveTab] = useState("Tithe");
+  const [provider, setProvider] = useState("Africa's Talking");
+  const [apiKey, setApiKey] = useState("");
 
   const tabs = [
     { id: "Tithe", label: "Monthly Tithe", icon: (
@@ -27,7 +29,36 @@ export default function SMSReminders() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 leading-tight">SMS Reminders</h2>
-        <p className="text-slate-500 text-xs mt-1">Configure automated member communications</p>
+        <p className="text-slate-500 text-xs mt-1">Configure communications and API settings</p>
+      </div>
+
+      {/* API Configuration */}
+      <div className="card space-y-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">API Configuration</p>
+        <div className="grid gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">SMS Provider</label>
+            <select 
+              className="w-full px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-sm outline-none focus:border-blue-500 transition-all"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+            >
+              <option value="Africa's Talking">Africa&apos;s Talking</option>
+              <option value="Twilio">Twilio</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">API Key</label>
+            <input 
+              type="password"
+              className="w-full px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-sm outline-none focus:border-blue-500 transition-all font-mono"
+              placeholder="••••••••••••••••"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+          </div>
+          <button className="btn-secondary w-full py-2 text-xs">Save Configuration</button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -76,16 +107,6 @@ export default function SMSReminders() {
         </div>
       </div>
 
-      <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-        <div className="flex gap-3">
-          <svg className="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-xs text-blue-700 leading-relaxed">
-            SMS credits are required to send reminders. Visit settings to configure your SMS provider (Twilio or Africa&apos;s Talking).
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
