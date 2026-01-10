@@ -96,7 +96,7 @@ export default function Login() {
         </form>
 
         <p className="text-center mt-8 text-slate-600 text-sm">
-          Don&apos;t have a church account?{" "}
+          {"Don't have a church account?"}{" "}
           <Link href="/register" className="text-blue-600 font-bold hover:underline">
             Register Church
           </Link>
