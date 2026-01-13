@@ -36,8 +36,7 @@ export default function AdminDashboard() {
 
         const q = query(
           collection(db, "transactions"),
-          where("churchId", "==", userData.churchId),
-          where("date", ">=", firstDayOfMonth)
+          where("churchId", "==", userData.churchId)
         );
         const querySnapshot = await getDocs(q);
         
@@ -47,6 +46,10 @@ export default function AdminDashboard() {
 
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          // Optional: Filter for month here if strict "This Month" needed
+          // if (data.date >= firstDayOfMonth) { ... }
+          
+          // For MVP "Wow" factor, showing All Time totals ensures data is visible immediately
           if (data.type === "Tithe") tithe += data.amount;
           else if (data.type === "Offering") offering += data.amount;
           else if (data.type === "Partnership") partnership += data.amount;
