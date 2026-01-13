@@ -38,7 +38,6 @@ export default function Login() {
         setError("User data not found.");
       }
     } catch (err) {
-
       console.error("Login Error:", err);
       if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
         setError("Incorrect email or password. Please try again.");
@@ -73,7 +72,6 @@ export default function Login() {
         await auth.signOut();
       }
     } catch (err) {
-
       console.error("Google Login Error:", err);
       if (err.code === "auth/popup-closed-by-user") return;
       setError("Google sign-in failed. Please try again.");
