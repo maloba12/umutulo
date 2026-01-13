@@ -29,11 +29,16 @@ service cloud.firestore {
       allow update: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Members: Managed by Church Admin or Finance Officer.
+    // Members: Managed by Church Admin or Finance Officer. Members can register themselves.
     match /members/{memberId} {
-      allow read, write: if isAuthenticated() && 
-        (resource == null ? request.resource.data.churchId : resource.data.churchId) == getUserData().churchId && 
-        getUserData().role in ['Church Admin', 'Finance Officer'];
+      allow create: if isAuthenticated() && request.auth.uid == memberId;
+      allow read, update: if isAuthenticated() && (
+        request.auth.uid == memberId || 
+        (
+          (resource == null ? request.resource.data.churchId : resource.data.churchId) == getUserData().churchId && 
+          getUserData().role in ['Church Admin', 'Finance Officer']
+        )
+      );
     }
 
     // Transactions: Isolated by churchId.

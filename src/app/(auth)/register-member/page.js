@@ -38,7 +38,7 @@ export default function RegisterMember() {
         setChurches(churchList);
       } catch (err) {
         console.error("Error fetching churches (Detailed):", err);
-        setError("Failed to load churches. Please check console for details.");
+        setError(`Failed to load churches: ${err.message}`);
       }
     };
     fetchChurches();
@@ -86,7 +86,7 @@ export default function RegisterMember() {
       } else if (err.code === "auth/invalid-credential") {
         setError("Invalid account details.");
       } else {
-        setError("Registration failed. Please try again.");
+        setError(`Registration failed: ${err.message}`);
         console.error("Registration invalid:", err);
       }
     } finally {
