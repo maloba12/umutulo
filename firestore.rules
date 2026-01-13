@@ -45,7 +45,7 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if isAuthenticated() && (
         (getUserData().churchId == resource.data.churchId && getUserData().role in ['Church Admin', 'Finance Officer']) ||
-        (request.auth.uid == resource.data.memberUid)
+        (request.auth.uid == resource.data.memberId)
       );
       allow create: if isAuthenticated() && 
         getUserData().churchId == request.resource.data.churchId && 

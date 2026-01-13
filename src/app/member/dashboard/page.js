@@ -26,8 +26,7 @@ export default function MemberDashboard() {
         const q = query(
           collection(db, "transactions"),
           where("churchId", "==", userData.churchId),
-          where("memberId", "==", user.uid),
-          orderBy("date", "desc")
+          where("memberId", "==", user.uid)
         );
         const querySnapshot = await getDocs(q);
         
@@ -44,6 +43,9 @@ export default function MemberDashboard() {
           
           transList.push({ id: doc.id, ...data });
         });
+
+        // Client-side sort
+        transList.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         setTransactions(transList);
         setStats(prev => [
