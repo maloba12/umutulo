@@ -76,8 +76,11 @@ export default function RegisterMember() {
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already registered. Please login.");
+      } else if (err.code === "auth/invalid-credential") {
+        setError("Invalid account details.");
       } else {
-        setError(err.message);
+        setError("Registration failed. Please try again.");
+        console.error("Registration invalid:", err);
       }
     } finally {
       setLoading(false);
@@ -117,7 +120,15 @@ export default function RegisterMember() {
         router.push("/member/dashboard");
       }, 2000);
     } catch (err) {
-      setError(err.message);
+      if (err.code === "auth/popup-blocked") {
+        setError("Pop-up was blocked. Please allow pop-ups.");
+      } else if (err.code === "auth/popup-closed-by-user") {
+        console.log("User closed popup");
+        return;
+      } else {
+        setError("Google registration failed. Please try again.");
+        console.error("Google Auth Error:", err);
+      }
     } finally {
       setLoading(false);
     }

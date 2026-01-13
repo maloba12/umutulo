@@ -11,11 +11,11 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Churches: Allow creation by any authenticated user (initial registration).
-    // Read/Update restricted to church staff.
+    // Churches: Public read access needed for directory/registration.
+    // Create allowed for authenticated users (initial setup, though usually this should be open or strictly managed).
     match /churches/{churchId} {
       allow create: if isAuthenticated();
-      allow read: if isAuthenticated() && getUserData().churchId == churchId;
+      allow read: if true;
       allow update: if isAuthenticated() && getUserData().churchId == churchId && getUserData().role == 'Church Admin';
     }
 
