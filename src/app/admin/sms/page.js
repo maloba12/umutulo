@@ -4,8 +4,7 @@ import { useState } from "react";
 
 export default function SMSReminders() {
   const [activeTab, setActiveTab] = useState("Tithe");
-  const [provider, setProvider] = useState("Africa's Talking");
-  const [apiKey, setApiKey] = useState("");
+
 
   const tabs = [
     { id: "Tithe", label: "Monthly Tithe", icon: (
@@ -32,34 +31,10 @@ export default function SMSReminders() {
         <p className="text-slate-500 text-xs mt-1">Configure communications and API settings</p>
       </div>
 
-      {/* API Configuration */}
-      <div className="card space-y-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">API Configuration</p>
-        <div className="grid gap-4">
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">SMS Provider</label>
-            <select 
-              className="w-full px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-sm outline-none focus:border-blue-500 transition-all"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-            >
-              <option value="Africa's Talking">Africa&apos;s Talking</option>
-              <option value="Twilio">Twilio</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">API Key</label>
-            <input 
-              type="password"
-              className="w-full px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-sm outline-none focus:border-blue-500 transition-all font-mono"
-              placeholder="••••••••••••••••"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-          </div>
-          <button className="btn-secondary w-full py-2 text-xs">Save Configuration</button>
-        </div>
+      <div className="p-4 bg-blue-50 text-blue-800 text-sm rounded-xl border border-blue-100 mb-4">
+        To configure your SMS Provider and API Key, please go to <a href="/admin/settings" className="font-bold underline">Settings</a>.
       </div>
+
 
       {/* Tabs */}
       <div className="flex bg-slate-100 p-1 rounded-2xl">

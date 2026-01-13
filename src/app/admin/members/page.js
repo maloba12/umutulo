@@ -18,11 +18,14 @@ export default function MembersManagement() {
     const fetchMembers = async () => {
       setLoading(true);
       try {
+        console.log("Fetching members for Church ID:", userData.churchId);
         const q = query(
           collection(db, "members"),
           where("churchId", "==", userData.churchId)
         );
         const querySnapshot = await getDocs(q);
+        console.log("Members found:", querySnapshot.size);
+        
         const memberList = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -75,7 +78,15 @@ export default function MembersManagement() {
 
       {/* Members List */}
       <div className="space-y-3">
-        {filteredMembers.map((member) => (
+        {loading ? (
+          <div className="text-center py-10 text-slate-400">Loading members...</div>
+        ) : filteredMembers.length === 0 ? (
+          <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-100">
+             <p className="text-slate-500 font-medium">No members found</p>
+             <p className="text-xs text-slate-400 mt-1">Try adding a new member or check your search</p>
+          </div>
+        ) : (
+          filteredMembers.map((member) => (
           <div key={member.id} className="card flex items-center justify-between p-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 font-bold">
@@ -100,7 +111,8 @@ export default function MembersManagement() {
               </Link>
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );

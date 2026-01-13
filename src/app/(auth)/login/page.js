@@ -38,7 +38,15 @@ export default function Login() {
         setError("User data not found.");
       }
     } catch (err) {
-      setError(err.message);
+
+      console.error("Login Error:", err);
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+        setError("Incorrect email or password. Please try again.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Account temporarily locked due to too many failed attempts. Try again later.");
+      } else {
+        setError("Login failed. Please check your connection.");
+      }
     } finally {
       setLoading(false);
     }
@@ -65,7 +73,10 @@ export default function Login() {
         await auth.signOut();
       }
     } catch (err) {
-      setError(err.message);
+
+      console.error("Google Login Error:", err);
+      if (err.code === "auth/popup-closed-by-user") return;
+      setError("Google sign-in failed. Please try again.");
     } finally {
       setLoading(false);
     }

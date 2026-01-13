@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signInWithPopup } from "firebase/auth";
 import { googleProvider } from "@/lib/firebase";
+import Toast from "@/components/Toast";
 
 export default function Register() {
   const [churchName, setChurchName] = useState("");
@@ -15,6 +16,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showToast, setShowToast] = useState(false);
   const router = useRouter();
 
   const handleRegister = async (e) => {
@@ -46,7 +48,10 @@ export default function Register() {
         churchId,
       });
 
-      router.push("/admin/dashboard");
+      setShowToast(true);
+      setTimeout(() => {
+        router.push("/admin/dashboard");
+      }, 2000);
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already registered. Please login or use a different email.");
@@ -87,7 +92,10 @@ export default function Register() {
         churchId,
       });
 
-      router.push("/admin/dashboard");
+      setShowToast(true);
+      setTimeout(() => {
+        router.push("/admin/dashboard");
+      }, 2000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -187,6 +195,7 @@ export default function Register() {
           </Link>
         </p>
       </div>
+      {showToast && <Toast message="Church registered successfully!" onClose={() => setShowToast(false)} />}
     </div>
   );
 }

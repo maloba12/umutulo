@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { doc, setDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, query } from "firebase/firestore";
 import { auth, db, googleProvider } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,15 +23,22 @@ export default function RegisterMember() {
   useEffect(() => {
     const fetchChurches = async () => {
       try {
-        const q = query(collection(db, "churches"), orderBy("name", "asc"));
+        console.log("Fetching churches...");
+        // Removed orderBy temporarily to debug index/permission issues
+        const q = query(collection(db, "churches"));
         const snapshot = await getDocs(q);
+        console.log("Snapshot size:", snapshot.size);
+        
         const churchList = snapshot.docs.map(doc => ({
           id: doc.id,
           name: doc.data().name
-        }));
+        })).sort((a, b) => a.name.localeCompare(b.name)); // Client-side sort
+        
+        console.log("Church list:", churchList);
         setChurches(churchList);
       } catch (err) {
-        console.error("Error fetching churches:", err);
+        console.error("Error fetching churches (Detailed):", err);
+        setError("Failed to load churches. Please check console for details.");
       }
     };
     fetchChurches();
