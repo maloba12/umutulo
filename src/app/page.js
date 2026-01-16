@@ -230,8 +230,8 @@ export default function Home() {
           <div>
             <h4 className="font-bold text-[#FFD700] uppercase tracking-widest text-xs mb-6">Contact</h4>
             <ul className="space-y-4 text-sm font-medium text-slate-400 font-mono">
-              <li>support@umutulo.co.zm</li>
-              <li>+260 971 000 000</li>
+              <li>mpundumaloba23@gmail.com</li>
+              <li>+260 771 584 925</li>
             </ul>
           </div>
         </div>
