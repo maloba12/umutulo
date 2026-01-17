@@ -45,6 +45,10 @@ export default function Settings() {
       return;
     }
 
+    // Immediate Local Preview
+    const localUrl = URL.createObjectURL(file);
+    setLogoUrl(localUrl);
+
     setUploading(true);
     setUploadStatus("Starting...");
     
