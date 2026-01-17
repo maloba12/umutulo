@@ -31,8 +31,11 @@ export default function SMSReminders() {
         <p className="text-slate-500 text-xs mt-1">Configure communications and API settings</p>
       </div>
 
-      <div className="p-4 bg-blue-50 text-blue-800 text-sm rounded-xl border border-blue-100 mb-4">
-        To configure your SMS Provider and API Key, please go to <a href="/admin/settings" className="font-bold underline">Settings</a>.
+      <div className="p-4 bg-amber-50 text-amber-800 text-sm rounded-xl border border-amber-100 mb-4 flex items-center gap-3">
+        <svg className="w-5 h-5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>SMS Provider configuration is <strong>Coming Soon</strong>. Direct integration with Africa&apos;s Talking and Twilio is being finalized.</span>
       </div>
 
 

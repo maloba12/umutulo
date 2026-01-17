@@ -14,8 +14,7 @@ export default function Settings() {
   
   // State for form fields
   const [churchName, setChurchName] = useState("");
-  const [smsProvider, setSmsProvider] = useState("Africa's Talking");
-  const [smsApiKey, setSmsApiKey] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
@@ -30,8 +29,7 @@ export default function Settings() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.name) setChurchName(data.name);
-          if (data.smsProvider) setSmsProvider(data.smsProvider);
-          if (data.smsApiKey) setSmsApiKey(data.smsApiKey);
+          if (data.logoUrl) setLogoUrl(data.logoUrl);
         }
       }
     };
@@ -50,8 +48,7 @@ export default function Settings() {
       const docRef = doc(db, "churches", userData.churchId);
       await updateDoc(docRef, {
         name: churchName,
-        smsProvider,
-        smsApiKey
+        logoUrl
       });
       setShowToast(true);
     } catch (error) {
@@ -73,7 +70,16 @@ export default function Settings() {
         {/* Profile Section */}
         <div className="flex flex-col items-center p-8 bg-white rounded-3xl shadow-sm border border-slate-100">
           <div className="relative w-24 h-24 mx-auto mb-4">
-            <img src="/umutulo_small_logo_120.png" alt="Umutulo Logo" className="w-24 h-24 rounded-full" />
+            <img 
+              src={logoUrl || "/umutulo_small_logo_120.png"} 
+              alt="Church Logo" 
+              className="w-24 h-24 rounded-full border-4 border-slate-50 shadow-inner object-cover" 
+            />
+            <div className="absolute bottom-0 right-0 p-1.5 bg-blue-600 rounded-full text-white shadow-lg border-2 border-white">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
           </div>
           <h3 className="text-xl font-bold text-slate-900">{churchName || "My Church"}</h3>
           <p className="text-sm text-slate-500">{userData?.email}</p>
@@ -94,41 +100,23 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Location</label>
-              <input
-                type="text"
-                disabled
-                className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 outline-none"
-                value="Lusaka, Zambia"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SMS Configuration */}
-        <div className="space-y-3">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">SMS Configuration</p>
-          <div className="card space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">SMS Provider</label>
-              <select 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-all bg-white"
-                value={smsProvider}
-                onChange={(e) => setSmsProvider(e.target.value)}
-              >
-                <option value="Africa's Talking">Africa&apos;s Talking</option>
-                <option value="Twilio">Twilio</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-              <input 
-                type="password"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-all font-mono"
-                placeholder="••••••••••••••••"
-                value={smsApiKey}
-                onChange={(e) => setSmsApiKey(e.target.value)}
-              />
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Profile Image (URL)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all text-sm font-mono"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://example.com/logo.png"
+                />
+                <button 
+                  type="button"
+                  onClick={() => alert("Image upload functionality coming soon. Please use a URL for now.")}
+                  className="px-4 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs"
+                >
+                  Upload
+                </button>
+              </div>
             </div>
           </div>
         </div>
