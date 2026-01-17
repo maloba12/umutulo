@@ -30,7 +30,8 @@ export const AuthProvider = ({ children }) => {
               unsubscribeChurch(); // Unsubscribe previous church listener if any
               unsubscribeChurch = onSnapshot(doc(db, "churches", userDocData.churchId), (churchDoc) => {
                 if (churchDoc.exists()) {
-                  setUserData({ ...userDocData, churchName: churchDoc.data().name });
+                  const churchData = churchDoc.data();
+                  setUserData({ ...userDocData, ...churchData, churchName: churchData.name });
                 } else {
                   setUserData(userDocData);
                 }

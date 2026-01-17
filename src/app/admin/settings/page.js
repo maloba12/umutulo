@@ -20,24 +20,15 @@ export default function Settings() {
   const [logoUrl, setLogoUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
   const [showToast, setShowToast] = useState(false);
 
-  // Load initial data
+  // Load initial data - only strictly necessary fields
   useEffect(() => {
-    if (userData?.churchName) setChurchName(userData.churchName);
-    
-    const fetchSettings = async () => {
-      if (userData?.churchId) {
-        const docRef = doc(db, "churches", userData.churchId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.name) setChurchName(data.name);
-          if (data.logoUrl) setLogoUrl(data.logoUrl);
-        }
-      }
-    };
-    fetchSettings();
+    if (userData) {
+      if (userData.churchName) setChurchName(userData.churchName);
+      if (userData.logoUrl) setLogoUrl(userData.logoUrl);
+    }
   }, [userData]);
 
   const handleLogout = async () => {
@@ -50,33 +41,44 @@ export default function Settings() {
     if (!file) return;
 
     if (!userData?.churchId) {
-      alert("Church ID not found. Please refresh and try again.");
-      return;
-    }
-
-    // Validate size (2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Image size should be less than 2MB");
+      alert("Error: Church ID missing from session. Please try logging out and back in.");
       return;
     }
 
     setUploading(true);
+    setUploadStatus("Starting...");
+    
     try {
-      console.log("Starting upload for church:", userData.churchId);
+      console.log("Preparing storage reference...");
+      setUploadStatus("Connecting to storage...");
       const storageRef = ref(storage, `churches/${userData.churchId}/logo`);
       
-      // Using uploadBytes (promise based) instead of resumable for simpler error handling
+      console.log("Beginning byte upload...");
+      setUploadStatus("Uploading file...");
       const snapshot = await uploadBytes(storageRef, file);
-      console.log("Upload successful, getting download URL...");
       
+      console.log("Upload successful, fetching URL...");
+      setUploadStatus("Finalizing...");
       const downloadURL = await getDownloadURL(snapshot.ref);
+      
       setLogoUrl(downloadURL);
-      console.log("Download URL obtained:", downloadURL);
+      setUploadStatus("Done!");
+      console.log("New logo URL set:", downloadURL);
+      
+      // Auto-save to Firestore immediately so AuthContext picks it up
+      const docRef = doc(db, "churches", userData.churchId);
+      await updateDoc(docRef, { logoUrl: downloadURL });
+      
     } catch (error) {
-      console.error("Upload process error:", error);
-      alert(`Upload failed: ${error.message || "Unknown error"}. Check if Storage rules allow writing.`);
+      console.error("CRITICAL UPLOAD ERROR:", error);
+      setUploadStatus("Failed");
+      alert(`Upload failed: ${error.message}\n\nTechnical details: ${error.code || "No code"}`);
     } finally {
-      setUploading(false);
+      // Small delay to let user see "Done" status
+      setTimeout(() => {
+        setUploading(false);
+        setUploadStatus("");
+      }, 1000);
     }
   };
 
@@ -108,13 +110,14 @@ export default function Settings() {
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Section */}
         <div className="flex flex-col items-center p-8 bg-white rounded-3xl shadow-sm border border-slate-100">
-          <div className="relative w-28 h-28 mx-auto mb-4 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+          <div className="relative w-28 h-28 mx-auto mb-4 group cursor-pointer" onClick={() => !uploading && fileInputRef.current?.click()}>
             <div className="absolute inset-0 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
               <Camera className="text-white w-8 h-8" />
             </div>
             {uploading && (
-              <div className="absolute inset-0 bg-white/80 rounded-full z-20 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+              <div className="absolute inset-0 bg-white/90 rounded-full z-20 flex flex-col items-center justify-center p-2 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mb-2"></div>
+                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">{uploadStatus}</span>
               </div>
             )}
             <img 
