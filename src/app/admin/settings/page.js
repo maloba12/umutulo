@@ -6,7 +6,7 @@ import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Toast from "@/components/Toast";
 import { Camera, Upload } from "lucide-react";
 
@@ -49,7 +49,12 @@ export default function Settings() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate size (e.g., 2MB)
+    if (!userData?.churchId) {
+      alert("Church ID not found. Please refresh and try again.");
+      return;
+    }
+
+    // Validate size (2MB)
     if (file.size > 2 * 1024 * 1024) {
       alert("Image size should be less than 2MB");
       return;
@@ -57,25 +62,20 @@ export default function Settings() {
 
     setUploading(true);
     try {
+      console.log("Starting upload for church:", userData.churchId);
       const storageRef = ref(storage, `churches/${userData.churchId}/logo`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        "state_changed",
-        null, // progress can be handled here
-        (error) => {
-          console.error("Upload error:", error);
-          alert("Failed to upload image.");
-          setUploading(false);
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          setLogoUrl(downloadURL);
-          setUploading(false);
-        }
-      );
+      
+      // Using uploadBytes (promise based) instead of resumable for simpler error handling
+      const snapshot = await uploadBytes(storageRef, file);
+      console.log("Upload successful, getting download URL...");
+      
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      setLogoUrl(downloadURL);
+      console.log("Download URL obtained:", downloadURL);
     } catch (error) {
-      console.error("Error setting up upload:", error);
+      console.error("Upload process error:", error);
+      alert(`Upload failed: ${error.message || "Unknown error"}. Check if Storage rules allow writing.`);
+    } finally {
       setUploading(false);
     }
   };
