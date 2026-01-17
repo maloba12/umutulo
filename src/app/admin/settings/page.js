@@ -1,21 +1,25 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import Toast from "@/components/Toast";
+import { Camera, Upload } from "lucide-react";
 
 export default function Settings() {
   const { userData } = useAuth();
   const router = useRouter();
+  const fileInputRef = useRef(null);
   
   // State for form fields
   const [churchName, setChurchName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
   // Load initial data
@@ -39,6 +43,41 @@ export default function Settings() {
   const handleLogout = async () => {
     await signOut(auth);
     router.push("/login");
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate size (e.g., 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image size should be less than 2MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `churches/${userData.churchId}/logo`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        "state_changed",
+        null, // progress can be handled here
+        (error) => {
+          console.error("Upload error:", error);
+          alert("Failed to upload image.");
+          setUploading(false);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          setLogoUrl(downloadURL);
+          setUploading(false);
+        }
+      );
+    } catch (error) {
+      console.error("Error setting up upload:", error);
+      setUploading(false);
+    }
   };
 
   const handleSave = async (e) => {
@@ -69,17 +108,30 @@ export default function Settings() {
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Section */}
         <div className="flex flex-col items-center p-8 bg-white rounded-3xl shadow-sm border border-slate-100">
-          <div className="relative w-24 h-24 mx-auto mb-4">
+          <div className="relative w-28 h-28 mx-auto mb-4 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <div className="absolute inset-0 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+              <Camera className="text-white w-8 h-8" />
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 bg-white/80 rounded-full z-20 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+              </div>
+            )}
             <img 
               src={logoUrl || "/umutulo_small_logo_120.png"} 
               alt="Church Logo" 
-              className="w-24 h-24 rounded-full border-4 border-slate-50 shadow-inner object-cover" 
+              className="w-full h-full rounded-full border-4 border-white shadow-xl object-cover" 
             />
-            <div className="absolute bottom-0 right-0 p-1.5 bg-blue-600 rounded-full text-white shadow-lg border-2 border-white">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
-              </svg>
+            <div className="absolute bottom-1 right-1 p-2 bg-blue-600 rounded-full text-white shadow-lg border-2 border-white z-20">
+              <Upload className="w-3 h-3" />
             </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              className="hidden" 
+              accept="image/*"
+            />
           </div>
           <h3 className="text-xl font-bold text-slate-900">{churchName || "My Church"}</h3>
           <p className="text-sm text-slate-500">{userData?.email}</p>
@@ -100,31 +152,32 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Profile Image (URL)</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Profile Image</label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all text-sm font-mono"
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all text-xs font-mono bg-slate-50 text-slate-500"
                   value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://example.com/logo.png"
+                  readOnly
+                  placeholder="Automated URL after upload"
                 />
                 <button 
                   type="button"
-                  onClick={() => alert("Image upload functionality coming soon. Please use a URL for now.")}
-                  className="px-4 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-6 bg-blue-600 text-white rounded-xl font-bold text-xs hover:bg-blue-700 transition-colors"
                 >
-                  Upload
+                  Change Image
                 </button>
               </div>
+              <p className="text-[10px] text-slate-400 mt-2 ml-1">Supports JPG, PNG up to 2MB</p>
             </div>
           </div>
         </div>
 
         <button 
           type="submit"
-          disabled={loading}
-          className="w-full btn-primary"
+          disabled={loading || uploading}
+          className="w-full btn-primary disabled:opacity-50"
         >
           {loading ? "Saving Changes..." : "Save Settings"}
         </button>
