@@ -97,7 +97,7 @@ export default function Register() {
         router.push("/admin/dashboard");
       }, 2000);
     } catch (err) {
-      setError(err.message);
+      setError(`Google registration failed: ${err.message}`);
     } finally {
       setLoading(false);
     }

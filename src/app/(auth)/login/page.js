@@ -74,7 +74,7 @@ export default function Login() {
     } catch (err) {
       console.error("Google Login Error:", err);
       if (err.code === "auth/popup-closed-by-user") return;
-      setError("Google sign-in failed. Please try again.");
+      setError(`Google sign-in failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
