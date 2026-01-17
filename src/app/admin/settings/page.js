@@ -1,12 +1,11 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, updateDoc } from "firebase/firestore";
 import Toast from "@/components/Toast";
 import { Camera, Upload } from "lucide-react";
 
@@ -45,44 +44,54 @@ export default function Settings() {
       return;
     }
 
-    // Immediate Local Preview
-    const localUrl = URL.createObjectURL(file);
-    setLogoUrl(localUrl);
+    // STRICT 200KB LIMIT for Base64 storage
+    if (file.size > 200 * 1024) {
+      alert("Image is too large! Since we are using free storage, please use an image smaller than 200KB (e.g., a logo icon).");
+      return;
+    }
 
     setUploading(true);
-    setUploadStatus("Starting...");
+    setUploadStatus("Processing...");
     
     try {
-      console.log("Preparing storage reference...");
-      setUploadStatus("Connecting to storage...");
-      const storageRef = ref(storage, `churches/${userData.churchId}/logo`);
+      const reader = new FileReader();
       
-      console.log("Beginning byte upload...");
-      setUploadStatus("Uploading file...");
-      const snapshot = await uploadBytes(storageRef, file);
+      reader.onloadstart = () => setUploadStatus("Reading...");
       
-      console.log("Upload successful, fetching URL...");
-      setUploadStatus("Finalizing...");
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      
-      setLogoUrl(downloadURL);
-      setUploadStatus("Done!");
-      console.log("New logo URL set:", downloadURL);
-      
-      // Auto-save to Firestore immediately so AuthContext picks it up
-      const docRef = doc(db, "churches", userData.churchId);
-      await updateDoc(docRef, { logoUrl: downloadURL });
+      reader.onerror = () => {
+        alert("Failed to read image file.");
+        setUploading(false);
+      };
+
+      reader.onload = async (event) => {
+        const base64String = event.target.result;
+        setUploadStatus("Saving...");
+        
+        try {
+          const docRef = doc(db, "churches", userData.churchId);
+          await updateDoc(docRef, { logoUrl: base64String });
+          
+          setLogoUrl(base64String);
+          setUploadStatus("Done!");
+          console.log("Logo updated with Base64 data");
+        } catch (dbError) {
+          console.error("Firestore update error:", dbError);
+          alert("Failed to save image to database. It might be too large for this storage method.");
+        } finally {
+          setTimeout(() => {
+            setUploading(false);
+            setUploadStatus("");
+          }, 1000);
+        }
+      };
+
+      reader.readAsDataURL(file);
       
     } catch (error) {
-      console.error("CRITICAL UPLOAD ERROR:", error);
+      console.error("Upload process error:", error);
       setUploadStatus("Failed");
-      alert(`Upload failed: ${error.message}\n\nTechnical details: ${error.code || "No code"}`);
-    } finally {
-      // Small delay to let user see "Done" status
-      setTimeout(() => {
-        setUploading(false);
-        setUploadStatus("");
-      }, 1000);
+      alert(`Process failed: ${error.message}`);
+      setUploading(false);
     }
   };
 
