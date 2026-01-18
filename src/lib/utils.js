@@ -21,29 +21,34 @@ export const generatePin = () => {
 };
 
 /**
- * Basic CSV Parser.
- * Expected headers: full_name, phone_number, email (optional)
+ * Basic CSV Parser with delimiter detection.
+ * Expected headers: name, phone, email (optional)
  */
 export const parseCSV = (text) => {
-  const lines = text.split(/\r?\n/);
+  const lines = text.split(/\r?\n/).filter(line => line.trim());
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  // Detect delimiter (comma or semicolon)
+  const firstLine = lines[0];
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const semiCount = (firstLine.match(/;/g) || []).length;
+  const delimiter = semiCount > commaCount ? ';' : ',';
+
+  const headers = firstLine.split(delimiter).map(h => 
+    h.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+  );
+  
   const results = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    const values = line.split(',').map(v => v.trim());
+    const values = lines[i].split(delimiter).map(v => v.trim());
     const obj = {};
     
     headers.forEach((header, index) => {
-      // Map common variations to strict keys
-      if (header.includes('name')) obj.name = values[index];
-      else if (header.includes('phone')) obj.phone = values[index];
-      else if (header.includes('email')) obj.email = values[index];
-      else obj[header] = values[index];
+      const val = values[index];
+      if (header.includes('name')) obj.name = val;
+      else if (header.includes('phone') || header.includes('contact') || header.includes('mobile')) obj.phone = val;
+      else if (header.includes('email')) obj.email = val;
     });
 
     if (obj.name && obj.phone) {
@@ -56,7 +61,7 @@ export const parseCSV = (text) => {
 
 /**
  * Excel Parser using SheetJS (xlsx).
- * Expected headers: full_name, phone_number, email (optional)
+ * Expected headers: name, phone, email (optional)
  */
 export const parseExcel = async (file) => {
   return new Promise((resolve, reject) => {
@@ -67,15 +72,19 @@ export const parseExcel = async (file) => {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Convert with original headers
+        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
         
         const results = json.map(row => {
           const normalized = {};
           Object.keys(row).forEach(key => {
-            const k = key.toLowerCase();
-            if (k.includes('name')) normalized.name = row[key];
-            else if (k.includes('phone')) normalized.phone = row[key];
-            else if (k.includes('email')) normalized.email = row[key];
+            const k = key.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const val = String(row[key]).trim();
+
+            if (k.includes('name')) normalized.name = val;
+            else if (k.includes('phone') || k.includes('contact') || k.includes('mobile')) normalized.phone = val;
+            else if (k.includes('email')) normalized.email = val;
           });
           return normalized;
         }).filter(item => item.name && item.phone);
