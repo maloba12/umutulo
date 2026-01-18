@@ -138,6 +138,9 @@ export default function MemberDetails({ params }) {
               </svg>
               {member.email || "No email provided"}
             </span>
+            <span className="flex items-center gap-2 bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+              ID: {member.memberId || "Legacy Member"}
+            </span>
           </div>
         </div>
       </div>

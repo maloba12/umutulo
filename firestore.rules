@@ -29,23 +29,29 @@ service cloud.firestore {
       allow update: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Members: Managed by Church Admin or Finance Officer. Members can register themselves.
+    // Members: Managed BY Church Admin or Finance Officer ONLY.
     match /members/{memberId} {
-      allow create: if isAuthenticated() && request.auth.uid == memberId;
-      allow read, update: if isAuthenticated() && (
-        request.auth.uid == memberId || 
+      allow create: if false; // strictly admin managed
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.uid || 
         (
-          (resource == null ? request.resource.data.churchId : resource.data.churchId) == getUserData().churchId && 
+          resource.data.churchId == getUserData().churchId && 
           getUserData().role in ['Church Admin', 'Finance Officer']
         )
       );
+      allow update: if isAuthenticated() && (
+        (resource.data.churchId == getUserData().churchId && getUserData().role in ['Church Admin', 'Finance Officer'])
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.churchId == getUserData().churchId && getUserData().role == 'Church Admin'
+      );
     }
 
-    // Transactions: Isolated by churchId.
+    // Transactions: Isolated by churchId and ownership.
     match /transactions/{transactionId} {
       allow read: if isAuthenticated() && (
         (getUserData().churchId == resource.data.churchId && getUserData().role in ['Church Admin', 'Finance Officer']) ||
-        (request.auth.uid == resource.data.memberId)
+        (getUserData().memberId == resource.data.memberId)
       );
       allow create: if isAuthenticated() && 
         getUserData().churchId == request.resource.data.churchId && 

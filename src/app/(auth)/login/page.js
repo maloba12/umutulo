@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, query, collection, where, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -22,7 +22,27 @@ export default function Login() {
     setError("");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      let loginEmail = email;
+      
+      // Check if the input is a Member ID (starts with M-)
+      if (email.trim().toUpperCase().startsWith("M-")) {
+        const usersQuery = query(
+          collection(db, "users"),
+          where("memberId", "==", email.trim().toUpperCase())
+        );
+        const querySnapshot = await getDocs(usersQuery);
+        
+        if (querySnapshot.empty) {
+          setError("Invalid Member ID. Please check and try again.");
+          setLoading(false);
+          return;
+        }
+        
+        // Map Member ID to the actual auth email
+        loginEmail = querySnapshot.docs[0].data().email;
+      }
+
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
 
       // Fetch user role for redirection
@@ -40,7 +60,7 @@ export default function Login() {
     } catch (err) {
       console.error("Login Error:", err);
       if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
-        setError("Incorrect email or password. Please try again.");
+        setError("Incorrect credentials. Please try again.");
       } else if (err.code === "auth/too-many-requests") {
         setError("Account temporarily locked due to too many failed attempts. Try again later.");
       } else {
@@ -97,19 +117,19 @@ export default function Login() {
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Member ID or Email</label>
             <input
-              type="email"
+              type="text"
               required
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-              placeholder="you@example.com"
+              placeholder="M-XXXXXX or you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">PIN or Password</label>
             <input
               type="password"
               required
@@ -160,12 +180,7 @@ export default function Login() {
           </Link>
         </p>
 
-        <p className="text-center mt-4 text-slate-600 text-sm">
-          Want to join as a member?{" "}
-          <Link href="/register-member" className="text-blue-600 font-bold hover:underline">
-            Join Church
-          </Link>
-        </p>
+
       </div>
     </div>
   );

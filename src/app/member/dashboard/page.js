@@ -21,12 +21,17 @@ export default function MemberDashboard() {
     const fetchMemberData = async () => {
       setLoading(true);
       try {
-        // Query transactions for this member
-        // In the MVP, memberId in transactions might be the member's UID if they have a login
+        // Query transactions for this member using their Member ID
+        if (!userData?.memberId) {
+          console.error("Member ID not found in user data");
+          setLoading(false);
+          return;
+        }
+
         const q = query(
           collection(db, "transactions"),
           where("churchId", "==", userData.churchId),
-          where("memberId", "==", user.uid)
+          where("memberId", "==", userData.memberId)
         );
         const querySnapshot = await getDocs(q);
         

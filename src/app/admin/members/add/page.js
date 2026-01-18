@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { db, auth } from "@/lib/firebase";
+import { collection, addDoc, doc, setDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { createUserWithEmailAndPassword, getAuth, signOut } from "firebase/auth";
+import { initializeApp, deleteApp, getApp, getApps } from "firebase/app";
+import { db, auth, firebaseConfig } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { generateMemberId, generatePin } from "@/lib/utils";
 import Toast from "@/components/Toast";
 
 export default function AddMember() {
@@ -14,32 +16,62 @@ export default function AddMember() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState(""); 
+  const [memberId, setMemberId] = useState("");
+  const [pin, setPin] = useState("");
   const [isPartner, setIsPartner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showToast, setShowToast] = useState(false);
+
+  // Generate credentials on load
+  useEffect(() => {
+    setMemberId(generateMemberId());
+    setPin(generatePin());
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    try {
-      // 1. Create Member login in Firebase Auth if email/password provided
-      let memberUid = null;
-      if (email && password) {
-        // Warning: This will sign the current admin out in client-side Firebase Auth!
-        // In a real app, you'd use a Cloud Function to create users without signing out.
-        // For MVP, we will advise the admin to set these up or handle the session logic.
-        // ACTUALLY, for MVP we will just save the member doc and skip auth creation 
-        // OR mention this limitation. Let's stick to saving the member doc first.
-        
-        // await createUserWithEmailAndPassword(auth, email, password); // Skip for now to avoid session kick
-      }
+    if (!userData?.churchId) {
+      setError("Church ID missing. Please refresh and try again.");
+      setLoading(false);
+      return;
+    }
 
-      // 2. Save Member to Firestore
-      const memberRef = await addDoc(collection(db, "members"), {
+    let secondaryApp;
+    try {
+      // 1. Generate a temporary email if none provided (required for Firebase Auth)
+      const authEmail = email || `${memberId.toLowerCase()}@umutulo.temp`;
+      const authPassword = pin;
+
+      // 2. Create account using Secondary App to avoid signing out current Admin
+      const secondaryAppName = `secondary-${memberId}`;
+      secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+      const secondaryAuth = getAuth(secondaryApp);
+
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, authEmail, authPassword);
+      const memberUid = userCredential.user.uid;
+      
+      // Immediately sign out from secondary app
+      await signOut(secondaryAuth);
+
+      // 3. Save to Users collection (Auth mapping)
+      await setDoc(doc(db, "users", memberUid), {
+        uid: memberUid,
+        email: authEmail,
+        name: name,
+        role: "Member",
+        churchId: userData.churchId,
+        memberId: memberId,
+        createdAt: serverTimestamp(),
+      });
+
+      // 4. Save to Members collection (Directory)
+      await setDoc(doc(db, "members", memberId), {
+        memberId,
+        uid: memberUid,
         churchId: userData.churchId,
         name,
         phone,
@@ -48,15 +80,21 @@ export default function AddMember() {
         createdAt: serverTimestamp(),
       });
 
-      // 3. If login was intended, we'd typicaly create a secondary user record
-      // But we will just redirect back for now.
       setShowToast(true);
       setTimeout(() => {
         router.push("/admin/members");
       }, 2000);
     } catch (err) {
+      console.error("Member Creation Error:", err);
       setError(err.message);
     } finally {
+      if (secondaryApp) {
+        try {
+          await deleteApp(secondaryApp);
+        } catch (e) {
+          console.error("Error deleting secondary app:", e);
+        }
+      }
       setLoading(false);
     }
   };
@@ -74,7 +112,7 @@ export default function AddMember() {
           Back
         </button>
         <h2 className="text-2xl font-bold text-slate-900 leading-tight">Add New Member</h2>
-        <p className="text-slate-500 text-sm">Create a profile and login access</p>
+        <p className="text-slate-500 text-sm">Create a profile and system-generated access</p>
       </div>
 
       <form onSubmit={handleSubmit} className="card space-y-6">
@@ -84,36 +122,34 @@ export default function AddMember() {
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
-          <input
-            type="text"
-            required
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
-            placeholder="e.g. Martha Phiri"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
+            <input
+              type="text"
+              required
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
+              placeholder="e.g. Martha Phiri"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
+            <input
+              type="tel"
+              required
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
+              placeholder="+260..."
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
-          <input
-            type="tel"
-            required
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
-            placeholder="+260..."
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-        </div>
-
-        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-xs text-slate-500">
-          Note: Credentials below are optional. If provided, the member can log in to view their giving history.
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Email (for Login)</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Email (Optional)</label>
           <input
             type="email"
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
@@ -123,15 +159,27 @@ export default function AddMember() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Initial Password</label>
-          <input
-            type="password"
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-blue-900 uppercase tracking-wider">Access Credentials</h4>
+            <span className="px-2 py-1 bg-blue-200 text-blue-700 text-[10px] font-bold rounded uppercase">System Generated</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-blue-600 uppercase mb-1">Member ID</label>
+              <div className="text-xl font-mono font-bold text-blue-900 bg-white p-3 rounded-xl border border-blue-200 text-center">
+                {memberId}
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-blue-600 uppercase mb-1">Login PIN</label>
+              <div className="text-xl font-mono font-bold text-blue-900 bg-white p-3 rounded-xl border border-blue-200 text-center">
+                {pin}
+              </div>
+            </div>
+          </div>
+          <p className="text-[10px] text-blue-500 italic">Please share these credentials with the member. They will need them to log in.</p>
         </div>
 
         <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl border border-purple-100">
@@ -150,10 +198,11 @@ export default function AddMember() {
           disabled={loading}
           className="w-full btn-primary disabled:opacity-50 mt-4"
         >
-          {loading ? "Saving Member..." : "Save Member Profile"}
+          {loading ? "Generating Account..." : "Confirm & Save Member"}
         </button>
       </form>
       {showToast && <Toast message="Member created successfully!" onClose={() => setShowToast(false)} />}
     </div>
   );
 }
+
