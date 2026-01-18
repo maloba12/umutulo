@@ -17,3 +17,37 @@ export const generateMemberId = () => {
 export const generatePin = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+/**
+ * Basic CSV Parser.
+ * Expected headers: full_name, phone_number, email (optional)
+ */
+export const parseCSV = (text) => {
+  const lines = text.split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const results = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const values = line.split(',').map(v => v.trim());
+    const obj = {};
+    
+    headers.forEach((header, index) => {
+      // Map common variations to strict keys
+      if (header.includes('name')) obj.name = values[index];
+      else if (header.includes('phone')) obj.phone = values[index];
+      else if (header.includes('email')) obj.email = values[index];
+      else obj[header] = values[index];
+    });
+
+    if (obj.name && obj.phone) {
+      results.push(obj);
+    }
+  }
+
+  return results;
+};

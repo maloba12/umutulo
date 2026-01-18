@@ -1,45 +1,131 @@
 "use client";
 
 import Link from "next/link";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, orderBy, setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { createUserWithEmailAndPassword, getAuth, signOut } from "firebase/auth";
+import { initializeApp, deleteApp } from "firebase/app";
+import { db, firebaseConfig } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { parseCSV, generateMemberId, generatePin } from "@/lib/utils";
+import Toast from "@/components/Toast";
 
 export default function MembersManagement() {
   const { userData } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const fileInputRef = useRef(null);
+
+  const fetchMembers = async () => {
+    if (!userData?.churchId) return;
+    setLoading(true);
+    try {
+      const q = query(
+        collection(db, "members"),
+        where("churchId", "==", userData.churchId)
+      );
+      const querySnapshot = await getDocs(q);
+      const memberList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })).sort((a, b) => a.name.localeCompare(b.name));
+      setMembers(memberList);
+    } catch (err) {
+      console.error("Error fetching members:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!userData?.churchId) return;
-
-    const fetchMembers = async () => {
-      setLoading(true);
-      try {
-        console.log("Fetching members for Church ID:", userData.churchId);
-        const q = query(
-          collection(db, "members"),
-          where("churchId", "==", userData.churchId)
-        );
-        const querySnapshot = await getDocs(q);
-        console.log("Members found:", querySnapshot.size);
-        
-        const memberList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })).sort((a, b) => a.name.localeCompare(b.name));
-        setMembers(memberList);
-      } catch (err) {
-        console.error("Error fetching members:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMembers();
   }, [userData]);
+
+  const handleCsvUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      const parsedData = parseCSV(text);
+      
+      if (parsedData.length === 0) {
+        alert("No valid member data found in CSV. Please ensure you have 'name' and 'phone' columns.");
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to bulk upload ${parsedData.length} members?`)) {
+        return;
+      }
+
+      setBulkLoading(true);
+      setUploadProgress({ current: 0, total: parsedData.length });
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const row of parsedData) {
+        let secondaryApp;
+        try {
+          const mId = generateMemberId();
+          const pin = generatePin();
+          const authEmail = row.email || `${mId.toLowerCase()}@umutulo.temp`;
+          
+          // Initialize secondary app for this specific member creation to avoid session collision
+          const secondaryAppName = `bulk-${mId}`;
+          secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+          const secondaryAuth = getAuth(secondaryApp);
+
+          const userCredential = await createUserWithEmailAndPassword(secondaryAuth, authEmail, pin);
+          const memberUid = userCredential.user.uid;
+          await signOut(secondaryAuth);
+
+          // Save Auth mapping
+          await setDoc(doc(db, "users", memberUid), {
+            uid: memberUid,
+            email: authEmail,
+            name: row.name,
+            role: "Member",
+            churchId: userData.churchId,
+            memberId: mId,
+            createdAt: serverTimestamp(),
+          });
+
+          // Save Member Directory entry
+          await setDoc(doc(db, "members", mId), {
+            memberId: mId,
+            uid: memberUid,
+            churchId: userData.churchId,
+            name: row.name,
+            phone: row.phone,
+            email: row.email || null,
+            createdAt: serverTimestamp(),
+          });
+
+          successCount++;
+        } catch (err) {
+          console.error("Bulk upload error for row:", row, err);
+          failCount++;
+        } finally {
+          if (secondaryApp) await deleteApp(secondaryApp);
+          setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
+        }
+      }
+
+      setBulkLoading(false);
+      setToastMsg(`Successfully uploaded ${successCount} members. ${failCount > 0 ? `${failCount} failed.` : ''}`);
+      setShowToast(true);
+      fetchMembers();
+    };
+    reader.readAsText(file);
+    e.target.value = null; // Reset input
+  };
 
   const filteredMembers = members.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,12 +139,47 @@ export default function MembersManagement() {
           <h2 className="text-2xl font-bold text-slate-900 leading-tight">Members</h2>
           <p className="text-slate-500 text-xs mt-1">Manage church members and logins</p>
         </div>
-        <Link href="/admin/members/add" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-200">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-          </svg>
-        </Link>
+        <div className="flex items-center gap-3">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleCsvUpload} 
+            accept=".csv" 
+            className="hidden" 
+          />
+          <button 
+            onClick={() => fileInputRef.current.click()}
+            disabled={bulkLoading}
+            className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Bulk Upload
+          </button>
+          <Link href="/admin/members/add" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-200 hover:scale-105 transition-transform">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </Link>
+        </div>
       </div>
+
+      {bulkLoading && (
+        <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 animate-pulse">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">Bulk Processing Members...</span>
+            <span className="text-xs font-bold text-blue-700">{Math.round((uploadProgress.current / uploadProgress.total) * 100)}%</span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+              style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+            ></div>
+          </div>
+          <p className="text-[10px] text-blue-500 mt-2 italic text-center">Please do not close this window until finished.</p>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -94,11 +215,14 @@ export default function MembersManagement() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900">{member.name}</h4>
-                <p className="text-xs text-slate-500">{member.phone}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-slate-500">{member.phone}</p>
+                  <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">ID: {member.memberId || 'Legacy'}</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {member.partner && (
+              {member.partnershipStatus && (
                 <span className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.6)]" title="Partner"></span>
               )}
               <Link 
@@ -114,6 +238,8 @@ export default function MembersManagement() {
         ))
         )}
       </div>
+      {showToast && <Toast message={toastMsg} onClose={() => setShowToast(false)} />}
     </div>
   );
 }
+
