@@ -80,6 +80,8 @@ export default function MembersManagement() {
       setUploadProgress({ current: 0, total: parsedData.length });
 
       let successCount = 0;
+      let existingCount = 0;
+      let existingNames = [];
       let failCount = 0;
       let errors = [];
 
@@ -104,37 +106,60 @@ export default function MembersManagement() {
           secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
           const secondaryAuth = getAuth(secondaryApp);
 
-          const userCredential = await createUserWithEmailAndPassword(secondaryAuth, authEmail, pin);
-          const memberUid = userCredential.user.uid;
-          await signOut(secondaryAuth);
+          try {
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, authEmail, pin);
+            const memberUid = userCredential.user.uid;
+            await signOut(secondaryAuth);
 
-          // Save Auth mapping
-          await setDoc(doc(db, "users", memberUid), {
-            uid: memberUid,
-            email: authEmail,
-            name: name,
-            role: "Member",
-            churchId: userData.churchId,
-            memberId: mId,
-            createdAt: serverTimestamp(),
-          });
+            // Save Auth mapping
+            await setDoc(doc(db, "users", memberUid), {
+              uid: memberUid,
+              email: authEmail,
+              name: name,
+              role: "Member",
+              churchId: userData.churchId,
+              memberId: mId,
+              createdAt: serverTimestamp(),
+            });
 
-          // Save Member Directory entry
-          await setDoc(doc(db, "members", mId), {
-            memberId: mId,
-            uid: memberUid,
-            churchId: userData.churchId,
-            name: name,
-            phone: phone,
-            email: email || null,
-            createdAt: serverTimestamp(),
-          });
+            // Save Member Directory entry
+            await setDoc(doc(db, "members", mId), {
+              memberId: mId,
+              uid: memberUid,
+              churchId: userData.churchId,
+              name: name,
+              phone: phone,
+              email: email || null,
+              createdAt: serverTimestamp(),
+            });
 
-          successCount++;
+            successCount++;
+          } catch (authErr) {
+            if (authErr.code === 'auth/email-already-in-use') {
+              // Check if this member is already in the SAME church
+              const userQuery = query(collection(db, "users"), where("email", "==", authEmail));
+              const userSnap = await getDocs(userQuery);
+              
+              if (!userSnap.empty) {
+                const existingUser = userSnap.docs[0].data();
+                if (existingUser.churchId === userData.churchId) {
+                  existingCount++;
+                  existingNames.push(existingUser.name || name);
+                  continue; // Skip without error
+                } else {
+                  throw new Error(`Conflict: Member registered at another church`);
+                }
+              } else {
+                throw authErr;
+              }
+            } else {
+              throw authErr;
+            }
+          }
         } catch (err) {
           console.error("Bulk upload error for row:", row, err);
           let errMsg = err.message;
-          if (err.code === 'auth/email-already-in-use') errMsg = "Email already in use";
+          if (err.code === 'auth/email-already-in-use') errMsg = "Email already in use elsewhere";
           else if (err.code === 'auth/invalid-email') errMsg = "Invalid email format";
           
           failCount++;
@@ -146,11 +171,20 @@ export default function MembersManagement() {
       }
 
       setBulkLoading(false);
-      if (failCount === 0) {
-        setToastMsg(`✅ Successfully uploaded ${successCount} members.`);
-      } else {
-        setToastMsg(`⚠️ Uploaded ${successCount}, failed ${failCount}. Errors: ${errors.slice(0, 3).join(', ')}${errors.length > 3 ? '...' : ''}`);
+      let summary = `✅ Success: ${successCount}`;
+      if (existingCount > 0) {
+        summary += ` | ℹ️ Already Added: ${existingCount}`;
+        if (existingNames.length > 0) {
+          summary += ` (${existingNames.slice(0, 2).join(', ')}${existingNames.length > 2 ? '...' : ''})`;
+        }
       }
+      if (failCount > 0) summary += ` | ⚠️ Failed: ${failCount}`;
+      
+      if (errors.length > 0) {
+        summary += `. Errors: ${errors.slice(0, 2).join(', ')}${errors.length > 2 ? '...' : ''}`;
+      }
+      
+      setToastMsg(summary);
       setShowToast(true);
       fetchMembers();
     } catch (err) {
