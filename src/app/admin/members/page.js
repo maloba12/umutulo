@@ -61,12 +61,14 @@ export default function MembersManagement() {
       } else if (fileType === 'xlsx' || fileType === 'xls') {
         parsedData = await parseExcel(file);
       } else {
-        alert("Unsupported file type. Please upload a CSV or Excel file.");
+        setToastMsg("❌ Unsupported file type. Please upload a CSV or Excel file.");
+        setShowToast(true);
         return;
       }
       
       if (parsedData.length === 0) {
-        alert("No valid member data found in the file. Please ensure you have 'name' and 'phone' columns.");
+        setToastMsg("⚠️ No valid member data found. Please ensure your file has 'name' and 'phone' columns.");
+        setShowToast(true);
         return;
       }
 
@@ -129,12 +131,13 @@ export default function MembersManagement() {
       }
 
       setBulkLoading(false);
-      setToastMsg(`Successfully uploaded ${successCount} members. ${failCount > 0 ? `${failCount} failed.` : ''}`);
+      setToastMsg(`✅ Successfully uploaded ${successCount} members. ${failCount > 0 ? `${failCount} failed.` : ''}`);
       setShowToast(true);
       fetchMembers();
     } catch (err) {
       console.error("Bulk upload processing error:", err);
-      alert("Failed to process the file. Please check the format.");
+      setToastMsg("❌ Failed to process the file. Please check the format and try again.");
+      setShowToast(true);
     } finally {
       e.target.value = null; // Reset input
     }
