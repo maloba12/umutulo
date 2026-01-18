@@ -137,20 +137,28 @@ export default function MembersManagement() {
           } catch (authErr) {
             if (authErr.code === 'auth/email-already-in-use') {
               // Check if this member is already in the SAME church
-              const userQuery = query(collection(db, "users"), where("email", "==", authEmail));
-              const userSnap = await getDocs(userQuery);
+              // IMPORTANT: Must include churchId filter to match security rules
+              const userQuery = query(
+                collection(db, "users"), 
+                where("churchId", "==", userData.churchId),
+                where("email", "==", authEmail)
+              );
               
-              if (!userSnap.empty) {
-                const existingUser = userSnap.docs[0].data();
-                if (existingUser.churchId === userData.churchId) {
+              try {
+                const userSnap = await getDocs(userQuery);
+                if (!userSnap.empty) {
+                  const existingUser = userSnap.docs[0].data();
                   existingCount++;
                   existingNames.push(existingUser.name || name);
-                  continue; // Skip without error
+                  continue; 
                 } else {
+                  // Email exists but not in this church (since query above is scoped to this church)
                   throw new Error(`Conflict: Member registered at another church`);
                 }
-              } else {
-                throw authErr;
+              } catch (fsErr) {
+                console.error("Firestore lookup error during bulk duplicate check:", fsErr);
+                // Fallback: if we can't query, assume conflict for safety
+                throw new Error("Conflict: Email used at another church");
               }
             } else {
               throw authErr;
