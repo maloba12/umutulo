@@ -7,7 +7,7 @@ import { initializeApp, deleteApp } from "firebase/app";
 import { db, firebaseConfig } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useRef } from "react";
-import { parseCSV, generateMemberId, generatePin } from "@/lib/utils";
+import { parseCSV, parseExcel, generateMemberId, generatePin } from "@/lib/utils";
 import Toast from "@/components/Toast";
 
 export default function MembersManagement() {
@@ -46,17 +46,27 @@ export default function MembersManagement() {
     fetchMembers();
   }, [userData]);
 
-  const handleCsvUpload = async (e) => {
+  const handleBulkUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target.result;
-      const parsedData = parseCSV(text);
+    const fileType = file.name.split('.').pop().toLowerCase();
+    
+    try {
+      let parsedData = [];
+      
+      if (fileType === 'csv') {
+        const text = await file.text();
+        parsedData = parseCSV(text);
+      } else if (fileType === 'xlsx' || fileType === 'xls') {
+        parsedData = await parseExcel(file);
+      } else {
+        alert("Unsupported file type. Please upload a CSV or Excel file.");
+        return;
+      }
       
       if (parsedData.length === 0) {
-        alert("No valid member data found in CSV. Please ensure you have 'name' and 'phone' columns.");
+        alert("No valid member data found in the file. Please ensure you have 'name' and 'phone' columns.");
         return;
       }
 
@@ -122,9 +132,12 @@ export default function MembersManagement() {
       setToastMsg(`Successfully uploaded ${successCount} members. ${failCount > 0 ? `${failCount} failed.` : ''}`);
       setShowToast(true);
       fetchMembers();
-    };
-    reader.readAsText(file);
-    e.target.value = null; // Reset input
+    } catch (err) {
+      console.error("Bulk upload processing error:", err);
+      alert("Failed to process the file. Please check the format.");
+    } finally {
+      e.target.value = null; // Reset input
+    }
   };
 
   const filteredMembers = members.filter(m => 
@@ -143,8 +156,8 @@ export default function MembersManagement() {
           <input 
             type="file" 
             ref={fileInputRef} 
-            onChange={handleCsvUpload} 
-            accept=".csv" 
+            onChange={handleBulkUpload} 
+            accept=".csv, .xlsx, .xls" 
             className="hidden" 
           />
           <button 
