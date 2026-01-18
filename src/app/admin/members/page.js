@@ -81,13 +81,23 @@ export default function MembersManagement() {
 
       let successCount = 0;
       let failCount = 0;
+      let errors = [];
 
       for (const row of parsedData) {
         let secondaryApp;
         try {
+          // Clean data
+          const name = row.name?.trim();
+          const phone = row.phone?.trim()?.replace(/\s+/g, '');
+          const email = row.email?.trim()?.toLowerCase();
+
+          if (!name || !phone) {
+            throw new Error("Missing name or phone number");
+          }
+
           const mId = generateMemberId();
           const pin = generatePin();
-          const authEmail = row.email || `${mId.toLowerCase()}@umutulo.temp`;
+          const authEmail = email || `${mId.toLowerCase()}@umutulo.temp`;
           
           // Initialize secondary app for this specific member creation to avoid session collision
           const secondaryAppName = `bulk-${mId}`;
@@ -102,7 +112,7 @@ export default function MembersManagement() {
           await setDoc(doc(db, "users", memberUid), {
             uid: memberUid,
             email: authEmail,
-            name: row.name,
+            name: name,
             role: "Member",
             churchId: userData.churchId,
             memberId: mId,
@@ -114,16 +124,21 @@ export default function MembersManagement() {
             memberId: mId,
             uid: memberUid,
             churchId: userData.churchId,
-            name: row.name,
-            phone: row.phone,
-            email: row.email || null,
+            name: name,
+            phone: phone,
+            email: email || null,
             createdAt: serverTimestamp(),
           });
 
           successCount++;
         } catch (err) {
           console.error("Bulk upload error for row:", row, err);
+          let errMsg = err.message;
+          if (err.code === 'auth/email-already-in-use') errMsg = "Email already in use";
+          else if (err.code === 'auth/invalid-email') errMsg = "Invalid email format";
+          
           failCount++;
+          errors.push(`${row.name || 'Unknown'}: ${errMsg}`);
         } finally {
           if (secondaryApp) await deleteApp(secondaryApp);
           setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
@@ -131,7 +146,11 @@ export default function MembersManagement() {
       }
 
       setBulkLoading(false);
-      setToastMsg(`✅ Successfully uploaded ${successCount} members. ${failCount > 0 ? `${failCount} failed.` : ''}`);
+      if (failCount === 0) {
+        setToastMsg(`✅ Successfully uploaded ${successCount} members.`);
+      } else {
+        setToastMsg(`⚠️ Uploaded ${successCount}, failed ${failCount}. Errors: ${errors.slice(0, 3).join(', ')}${errors.length > 3 ? '...' : ''}`);
+      }
       setShowToast(true);
       fetchMembers();
     } catch (err) {
