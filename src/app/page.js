@@ -240,7 +240,7 @@ export default function Home() {
           <div>&copy; {new Date().getFullYear()} Umutulo App. Build with Faith.</div>
           <div className="flex gap-8">
             <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Terms of Service</span>
+            <Link href="/terms-subscription" className="hover:text-white cursor-pointer transition-colors">Terms & Subscription</Link>
           </div>
         </div>
       </footer>
