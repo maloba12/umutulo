@@ -22,7 +22,11 @@ export default function MembersManagement() {
   const fileInputRef = useRef(null);
 
   const fetchMembers = async () => {
-    if (!userData?.churchId) return;
+    console.log("Fetching members for churchId:", userData?.churchId);
+    if (!userData?.churchId) {
+      console.warn("No churchId found in userData");
+      return;
+    }
     setLoading(true);
     try {
       const q = query(
@@ -30,6 +34,8 @@ export default function MembersManagement() {
         where("churchId", "==", userData.churchId)
       );
       const querySnapshot = await getDocs(q);
+      console.log("Members found:", querySnapshot.size);
+      
       const memberList = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -137,7 +143,6 @@ export default function MembersManagement() {
           } catch (authErr) {
             if (authErr.code === 'auth/email-already-in-use') {
               // Check if this member is already in the SAME church
-              // IMPORTANT: Must include churchId filter to match security rules
               const userQuery = query(
                 collection(db, "users"), 
                 where("churchId", "==", userData.churchId),
@@ -151,14 +156,48 @@ export default function MembersManagement() {
                   existingCount++;
                   existingNames.push(existingUser.name || name);
                   continue; 
-                } else {
-                  // Email exists but not in this church (since query above is scoped to this church)
-                  throw new Error(`Conflict: Member registered at another church`);
                 }
+                
+                // If we reach here, it's a cross-church conflict (email used elsewhere)
+                // FALLBACK STRATEGY: Use system-generated email for Auth, keep real email in Directory
+                console.log(`Conflict detected for ${authEmail}. Using fallback system email.`);
+                
+                // 1. Generate fallback system email
+                const systemEmail = `${mId.toLowerCase()}@umutulo.temp`;
+                
+                // 2. Create Auth User with System Email
+                const fallbackCredential = await createUserWithEmailAndPassword(secondaryAuth, systemEmail, pin);
+                const fallbackUid = fallbackCredential.user.uid;
+                await signOut(secondaryAuth);
+                
+                // 3. Save to 'users' collection (Must match Auth email for Login lookup)
+                await setDoc(doc(db, "users", fallbackUid), {
+                  uid: fallbackUid,
+                  email: systemEmail, // matches Auth
+                  originalEmail: authEmail, // record the intended email
+                  name: name,
+                  role: "Member",
+                  churchId: userData.churchId,
+                  memberId: mId,
+                  createdAt: serverTimestamp(),
+                });
+
+                // 4. Save to 'members' collection (Use REAL email for directory/contact)
+                await setDoc(doc(db, "members", mId), {
+                  memberId: mId,
+                  uid: fallbackUid,
+                  churchId: userData.churchId,
+                  name: name,
+                  phone: phone,
+                  email: email || null, // Real email
+                  createdAt: serverTimestamp(),
+                });
+
+                successCount++;
+
               } catch (fsErr) {
-                console.error("Firestore lookup error during bulk duplicate check:", fsErr);
-                // Fallback: if we can't query, assume conflict for safety
-                throw new Error("Conflict: Email used at another church");
+                console.error("Error during conflict resolution:", fsErr);
+                throw authErr; // Re-throw if fallback fails
               }
             } else {
               throw authErr;
